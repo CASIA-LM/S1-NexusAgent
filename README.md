@@ -5,7 +5,7 @@ The code is coming soon.
 
 ## Cite Us
 ```
-@misc{nexus2026s1nexus,
+@article{nexus2026s1nexus,
       title={S1-NexusAgent: a Self-Evolving Agent Framework for Multidisciplinary Scientific Research}, 
       author={NexusAgent Team},
       year={2026},
