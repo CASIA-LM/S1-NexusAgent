@@ -1,0 +1,28 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        patterns: ["*"]
+
+  - package-ecosystem: "uv"
+    directories:
+      - "/libs/deepagents"
+      - "/libs/cli"
+      - "/libs/harbor"
+      - "/libs/acp"
+      - "/libs/partners/daytona"
+      - "/examples/content-builder-agent"
+      - "/examples/deep_research"
+      - "/examples/text-to-sql-agent"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      pip-dependencies:
+        patterns: ["*"]

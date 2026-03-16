@@ -1,0 +1,10 @@
+{
+  "skills": {
+    "public:protein-analysis": {
+      "enabled": true
+    },
+    "public:literature-review": {
+      "enabled": true
+    }
+  }
+}

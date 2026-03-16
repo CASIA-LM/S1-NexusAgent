@@ -1,0 +1,52 @@
+# LangChain & LangGraph - 最新版本
+langchain-core
+langgraph
+langchain-openai
+langchain-deepseek
+
+# 数据验证
+pydantic>=2.0.0
+
+# 数据处理
+pandas
+numpy
+scipy
+scikit-learn
+
+# 生物信息学
+biopython
+gget
+gseapy
+scanpy
+
+# 化学
+rdkit
+
+# HTTP/网络
+requests
+aiohttp
+httpx
+beautifulsoup4
+lxml
+
+# 数据库
+pymongo
+
+# 可视化
+matplotlib
+tqdm
+
+# 其他工具
+playwright
+openai
+python-dotenv
+
+# 代码执行沙箱
+agent-sandbox
+
+# Deep Agents CLI (交互式终端)
+deepagents
+deepagents-cli
+textual>=1.0.0
+tavily-python
+rich

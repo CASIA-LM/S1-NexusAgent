@@ -1,0 +1,265 @@
+services:
+  flock_frontend:
+    build:
+      context: ../web
+      dockerfile: Dockerfile
+      target: production
+    image: flock-frontend
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    networks:
+      - docker_flock
+    env_file:
+      - .env 
+    environment:
+      - NODE_ENV=production
+      - API_URL=${API_URL}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - TZ=UTC
+      - FRONTEND_PORT=${FRONTEND_PORT?Variable not set}
+      - FRONTEND_URL=${FRONTEND_URL?Variable not set}
+    ports:
+      - ${FRONTEND_PORT}:3000
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=docker_flock
+      - traefik.constraint-label=docker_flock
+      - traefik.http.routers.${STACK_NAME}-frontend-http.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.${STACK_NAME}-frontend-http.entrypoints=http
+      - traefik.http.routers.${STACK_NAME}-frontend-http.middlewares=https-redirect
+      - traefik.http.routers.${STACK_NAME}-frontend-https.rule=Host(`${DOMAIN}`)
+      - traefik.http.routers.${STACK_NAME}-frontend-https.entrypoints=https
+      - traefik.http.routers.${STACK_NAME}-frontend-https.tls=true
+      - traefik.http.routers.${STACK_NAME}-frontend-https.tls.certresolver=le
+      - traefik.http.services.${STACK_NAME}-frontend.loadbalancer.server.port=3000
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f ${FRONTEND_URL} || exit 1"]  # 使用环境变量
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: always
+
+  flock_api:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      target: production
+      # network: host
+      args:
+        - BUILD_PROXY=${BUILD_PROXY}
+    image: flock-backend
+      #entrypoint: ""
+      #command: ["bash", "-c", "sleep 1000000"]
+    deploy:
+      resources:
+        limits:
+          memory: ${MEMORY}
+    networks:
+      - docker_flock
+    env_file:
+      - .env
+    environment:
+      - DEBUG=${DEBUG}
+      - SERVER_WORKER_AMOUNT=${SERVER_WORKER_AMOUNT}
+      - GUNICORN_TIMEOUT=14400
+      - TZ=UTC
+      - QDRANT_PORT=${QDRANT_PORT?Variable not set}
+      - DOCKER_QDRANT_PORT=${DOCKER_QDRANT_PORT?Variable not set}
+      - DOCKER_REDIS_PORT=${DOCKER_REDIS_PORT?Variable not set}
+      - REDIS_PORT=${REDIS_PORT?Variable not set}
+      - QDRANT_URL=${QDRANT_URL?Variable not set}
+      - CELERY_BROKER_URL=${CELERY_BROKER_URL?Variable not set}/0
+      - CELERY_RESULT_BACKEND=${CELERY_RESULT_BACKEND?Variable not set}/0
+      - HOME=/app/data
+      - BACKEND_PORT=${BACKEND_PORT?Variable not set}
+    ports:
+      - ${BACKEND_PORT}:8000
+    volumes:
+      - app-upload-data:/app/upload
+      - app-backend-model-cache:/app/model_cache
+      - app-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+#    depends_on:
+#      - flock_db
+#      - flock_redis
+#      - flock_qdrant
+    restart: always
+
+  flock_aip_gateway:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+      target: production
+      # network: host
+      args:
+        - BUILD_PROXY=${BUILD_PROXY}
+    image: flock-backend
+    entrypoint: ""
+    command: ["python", "/app/app/aip_gateway.py"]
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+    networks:
+      - docker_flock
+    env_file:
+      - .env
+    environment:
+      - TZ=UTC
+    ports:
+      - ${FLOCK_AIP_GATEWAY_PORT}:50050
+    depends_on:
+      - flock_api
+    restart: always
+
+  celery_worker:
+    image: flock-backend
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
+    networks:
+      - docker_flock
+    environment:
+      - MODE=worker
+      - MIGRATION_ENABLED=true
+      - CELERY_AUTO_SCALE=true
+      - CELERY_MAX_WORKERS=4
+      - CELERY_MIN_WORKERS=1
+      - LOG_LEVEL=INFO
+      - TZ=UTC
+      - POSTGRES_SERVER=flock_db
+      - QDRANT_PORT=${QDRANT_PORT?Variable not set}
+      - REDIS_PORT=${REDIS_PORT?Variable not set}
+      - QDRANT_URL=${QDRANT_URL?Variable not set}
+      # - CELERY_BROKER_URL=redis://flock_redis:${REDIS_PORT}/0
+      # - CELERY_RESULT_BACKEND=redis://flock_redis:${REDIS_PORT}/0
+      - HOME=/app/data
+    env_file:
+      - .env
+    volumes:
+      - app-upload-data:/app/upload
+      - app-backend-model-cache:/app/model_cache
+      - app-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+#    depends_on:
+#      - flock_redis
+#      - flock_db
+#      - flock_qdrant
+
+  # flock_db:
+  #   image: postgres:12
+  #   restart: always
+  #   networks:
+  #     - docker_flock
+  #   volumes:
+  #     - app-db-data:/var/lib/postgresql/data/pgdata
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - PGDATA=/var/lib/postgresql/data/pgdata
+  #     - POSTGRES_PORT=${POSTGRES_PORT?Variable not set}
+  #     - DOCKER_POSTGRES_PORT=${DOCKER_POSTGRES_PORT?Variable not set}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+  #     - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+  #     - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+  #   ports:
+  #     - ${POSTGRES_PORT}:${DOCKER_POSTGRES_PORT}
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+
+  # flock_qdrant:
+  #   image: qdrant/qdrant
+  #   restart: always
+  #   networks:
+  #     - docker_flock
+  #   volumes:
+  #     - app-qdrant-data:/qdrant/storage
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - QDRANT_SERVICE_API_KEY=${QDRANT_SERVICE_API_KEY?Variable not set}
+  #     - QDRANT_PORT=${QDRANT_PORT?Variable not set}
+  #     - QDRANT_PORT1=${QDRANT_PORT1?Variable not set}
+
+  #   ports:
+  #     - ${QDRANT_PORT1}:6334
+  #     - ${QDRANT_PORT}:6333
+
+  # flock_redis:
+  #   image: redis:alpine
+  #   restart: always
+  #   networks:
+  #     - docker_flock
+  #   env_file:
+  #     - .env
+  #   environment:
+  #     - REDIS_PORT=${REDIS_PORT?Variable not set}
+  #   ports:
+  #     - ${REDIS_PORT}:6379
+  #   volumes:
+  #     - app-redis-data:/data
+  #   healthcheck:
+  #     test: ["CMD", "redis-cli", "ping"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+  #     start_period: 10s
+
+  code-interpreter:
+    build:
+      context: ./code-interpreter
+      dockerfile: Dockerfile
+    image: code-interpreter:latest
+    restart: always
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    networks:
+      - docker_flock
+    volumes:
+      - app-code-workspace:/workspace
+    environment:
+      - PYTHONUNBUFFERED=1
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    healthcheck:
+      test: ["CMD", "python3", "/opt/code-interpreter/scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  docker_flock:
+    # external: true
+
+volumes:
+  # app-db-data:
+  # app-redis-data:
+  # app-qdrant-data:
+  app-code-workspace:
+  app-upload-data:
+  app-backend-model-cache:
+  app-data:

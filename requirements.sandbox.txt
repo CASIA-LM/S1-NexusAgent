@@ -1,0 +1,11 @@
+# Sandbox集成所需的额外依赖
+
+# AIO Sandbox SDK
+agent-sandbox>=1.0.0
+
+# 定时任务调度
+APScheduler>=3.10.0
+
+# 已有依赖(确认)
+# minio  # MinIO客户端(已有)
+# aiohttp  # 异步HTTP客户端(已有)
