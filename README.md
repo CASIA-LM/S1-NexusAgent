@@ -44,7 +44,7 @@ The two keys required to get started:
 
 See [.env.template](.env.template) for the full list of optional variables.
 
-### 3. Start the sandbox (optional)
+### 3. Start the sandbox
 
 The code execution sandbox lets the agent run Python/R analysis scripts. It uses a pre-built Docker image — no manual build or image upload needed.
 
@@ -135,31 +135,12 @@ All configuration is done via environment variables. No secrets are hardcoded in
 
 ---
 
-## Tool Categories
-
-| Domain | Count | Examples |
-|---|---|---|
-| **Molecular Biology** | 14 | PCR design, CRISPR sgRNA design, restriction enzyme analysis |
-| **Genomics** | 5 | GSEA, single-cell annotation, ADMET prediction |
-| **Proteomics** | 6 | AlphaFold2 multimer, RFdiffusion, PyMOL analysis |
-| **Biochemistry** | 6 | CD spectroscopy, ITC thermodynamics, enzyme kinetics |
-| **Microbiology** | 6 | Bacterial growth modeling, biofilm quantification |
-| **Literature** | 3 | PubMed, arXiv, URL extraction |
-| **Chemistry** | 25 | Drug-likeness (QED, PAINS), molecular fingerprints, similarity |
-| **Materials Science** | 20 | Materials Project queries, band gap, formation energy |
-| **General** | 8 | Web search, image description, citation conversion |
-
----
 
 ## CLI Usage
 
 ```bash
 python nexus_cli.py                          # Interactive session
 python nexus_cli.py -p "your query"          # Start with a prompt
-python nexus_cli.py --thread <id>            # Resume a session
-python nexus_cli.py --auto-approve           # Skip HITL approval
-python nexus_cli.py --mcp-config mcp.json   # Load MCP tools
-python nexus_cli.py --no-conversation-log   # Disable conversation logging
 ```
 
 **In-session slash commands:**
